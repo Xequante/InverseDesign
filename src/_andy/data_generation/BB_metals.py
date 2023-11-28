@@ -133,6 +133,7 @@ def eps2nk(eps):
     #complex refractive index
     return (n+1j*k) 
 
+
 def nk_material(mat,waverange):
     e = eps_material(mat,waverange)
     n = eps2nk(e)
