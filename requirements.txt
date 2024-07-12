@@ -1,4 +1,5 @@
 numpy
+nptyping
 scipy
 keras
 tensorflow
