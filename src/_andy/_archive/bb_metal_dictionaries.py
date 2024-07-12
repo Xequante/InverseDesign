@@ -1,16 +1,11 @@
 import numpy as np
 
 
-# #Print the current version data to the terminal
-# def version():
-#     #UPDATE THIS WHEN CHANGING CODE!!!
-#     print('20191115 13:00:00')
+def version():
+    #UPDATE THIS WHEN CHANGING CODE!!!
+    print('20191115 13:00:00')
 
-# Implementation of BB model for several metals
-# Rakic et at 1998
 
-# Define metal parameters as given in Rakic paper
-# -->Is there a more efficient way then dictionaries??
 Ag = {
     'f': np.array([0.821, 0.050, 0.133, 0.051, 0.467, 4.000]),
     'g': np.array([0.049, 0.189, 0.067, 0.019, 0.117, 0.052]),

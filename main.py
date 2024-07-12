@@ -1,10 +1,10 @@
 from numpy.random import seed
-from src.testing.material_uploads import upload_bb_materials
+from src.testing.material_uploads import load_all_materials
 
 
 def main():
     seed(35447)  # Seed the RNG for reproducability
-    upload_bb_materials()
+    load_all_materials()
     print('Hello World')
 
 

@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from struct import pack, unpack
 from nptyping import NDArray
 from typing import Union, List
@@ -114,7 +115,9 @@ class BBMetal(Material):
         eps = self.eps_material(wavelengths)
         return np.sqrt(eps)
 
-    def save_bb_metal(self, filename: Union[None, str] = None,
+    def save_bb_metal(self,
+                      directory='resources/materials/bb_metals',
+                      filename: Union[None, str] = None,
                       overwrite=False):
 
         # Ensure that there are no None entries and all data is compatible
@@ -130,7 +133,7 @@ class BBMetal(Material):
 
         # Create the filename that this will be saved to
         if filename is None:
-            filename = f'resources/materials/bb_metals/{self.name}_bb_metal'
+            filename = os.path.join(directory, f'{self.name}_bb_metal')
 
         # Open the file
         if overwrite:

@@ -1,134 +1,197 @@
 import numpy as np
-#Implementation of Lorenz-Drude model for several metals
-#Rakic 1998
-
-#Define metal parameters as given in Rakic paper
-# -->Is there a more efficient way then dictionaries??
-Ag = dict(f=np.array([0.845, 0.065, 0.124, 0.011, 0.840, 5.646]),
-          g=np.array([0.048, 3.886, 0.452, 0.065, 0.916, 2.419]),
-          w=np.array([0, 0.816, 4.481, 8.185, 9.083, 20.29]), wp=9.01)
-
-Au = {
-    'f':np.array([0.760,0.024,0.010,0.071,0.601,4.384]), 
-    'g':np.array([0.053,0.241,0.345,0.870,2.494,2.214]), 
-    'w':np.array([0,0.415,0.830,2.969,4.304,13.32]),
-    'wp':9.03
-}
-
-Cu = {
-    'f':np.array([0.575,0.061,0.104,0.723,0.638]), 
-    'g':np.array([0.030,0.378,1.056,3.213,4.305]), 
-    'w':np.array([0,0.291,2.597,5.300,11.18]),
-    'wp':10.83
-}
-
-Al = {
-    'f':np.array([0.532,0.227,0.050,0.166,0.030]), 
-    'g':np.array([0.047,0.333,0.312,1.351,3.382]), 
-    'w':np.array([0,0.162,1.544,1.808,3.473]),
-    'wp':14.98
-}
-
-Be = {
-    'f':np.array([0.084,0.031,0.140,0.530,0.130]), 
-    'g':np.array([0.035,1.664,3.395,4.454,1.802]), 
-    'w':np.array([0,0.100,1.032,3.183,4.604]),
-    'wp':18.51
-}
-
-Cr = {
-    'f':np.array([0.168,0.151,0.150,1.149,0.825]), 
-    'g':np.array([0.047,3.175,1.305,2.676,1.335]), 
-    'w':np.array([0,0.121,0.543,1.970,8.775]),
-    'wp':10.75
-}
-
-Ni = {
-    'f':np.array([0.096,0.100,0.135,0.106,0.729]), 
-    'g':np.array([0.048,4.511,1.334,2.178,6.292]), 
-    'w':np.array([0,0.174,0.582,1.597,6.089]),
-    'wp':15.92
-}
-
-Pd = {
-    'f':np.array([0.330,0.649,0.121,0.638,0.453]), 
-    'g':np.array([0.008,2.950,0.555,4.621,3.236]), 
-    'w':np.array([0,0.336,0.501,1.659,1.715]),
-    'wp':9.72
-}
-
-Pt = {
-    'f':np.array([0.333,0.191,0.659,0.547,3.576]), 
-    'g':np.array([0.080,0.517,1.838,3.668,8.517]), 
-    'w':np.array([0,0.780,1.314,3.141,9.249]),
-    'wp':9.59
-}
-
-Ti = {
-    'f':np.array([0.148,0.899,0.393,0.187,0.001]), 
-    'g':np.array([0.082,2.276,2.518,1.663,1.762]), 
-    'w':np.array([0,0.777,1.545,2.509,19.43]),
-    'wp':7.29
-}
-
-W = {
-    'f':np.array([0.206,0.054,0.166,0.706,2.590]), 
-    'g':np.array([0.064,0.530,1.281,3.332,5.836]), 
-    'w':np.array([0,1.004,1.917,3.580,7.498]),
-    'wp':13.22
-}
+import os
+from struct import pack, unpack
+from nptyping import NDArray
+from typing import Union, List
+from scipy.special import wofz
+from src.inputs.materials.material import Material, MaterialType
 
 
-mats = {
-    'Ag':Ag,
-    'Au':Au,
-    'Cu':Cu,
-    'Al':Al,
-    'Be':Be,
-    'Cr':Cr,
-    'Ni':Ni,
-    'Pd':Pd,
-    'Pt':Pt,
-    'Ti':Ti,
-    'W':W
-}
-#List the available materials
-def materials():
-    for key in mats:
-        print(key)
+class LDMetal(Material):
+    """
+    Implementation of Lorenz-Drude model for several metals
+    Rakic 1998
+    """
 
-#Print the current version data to the terminal
-def version():
-    #UPDATE THIS WHEN CHANGING CODE
-    print('20191018 10:30')
-        
-#convert complex eps to n and k values    
-def eps2nk(eps):
-    n = np.real(np.sqrt(eps))
-    k = np.imag(np.sqrt(eps))
-    #complex refractive index
-    return (n-1j*k) 
-        
-#get the complex dielectric function in wavelength range
-def eps_material(mat,waverange):
-    pen = np.divide(1239.84193E-9,waverange)
-    m = mats.get(mat)
-    #free electron eps
-    epsf = 1-np.divide(np.power(np.multiply(np.sqrt(m.get('f')[0]),m.get('wp')),2),np.multiply(pen,np.subtract(pen,1j*m.get('g')[0])))
-    #bound electron eps
-    epsb = 0 + 1j*0
-    for i in range((m.get('f').size)-1):
-        epsb += np.divide(np.multiply(m.get('f')[i+1],np.power(m.get('wp'),2)),(np.subtract(np.power(m.get('w')[i+1],2),np.power(pen,2))+np.multiply(pen,1j*m.get('g')[i+1]))) 
-    #complex dielectric function
-    return (epsf+epsb)
+    def __init__(self,
+                 name: str = '',
+                 f: Union[None, NDArray] = None,
+                 g: Union[None, NDArray] = None,
+                 w: Union[None, NDArray] = None,
+                 wp: float = 0.):
 
-def nk_material(mat,waverange):
-    e = eps_material(mat,waverange)
-    n = eps2nk(e)
-    return n
+        # Run the super class method
+        super().__init__(name=name, classification=MaterialType.BB)
 
-        
-#calculate reflectivity from semiconductor-metal interface
-def refl(ri,n_c):
-    ref = np.divide(np.power(n_c-np.real(ri),2)+np.power(-np.imag(ri),2),np.power(n_c+np.real(ri),2)+np.power(-np.imag(ri),2))
-    return ref
+        # Store relevant parameters
+        self.f: Union[None, NDArray] = f
+        self.g: Union[None, NDArray] = g
+        self.w: Union[None, NDArray] = w
+        self.wp: float = wp
+
+        # Check to make sure the stored data is compatible
+        if not self._compatibility():
+            raise SyntaxError('Arrays of different sizes cannot be used when '
+                              'defining a material')
+
+    def __eq__(self, other):
+        if not super.__eq__(self, other):
+            return False
+        if self.f != other.f or self.g != other.g:
+            return False
+        if self.w != other.w:
+            return False
+        if self.wp != other.wp:
+            return False
+        return True
+
+    def _none_entries(self) -> bool:
+        if self.f is None or self.g is None or self.w is None:
+            return True
+        return False
+
+    def _compatibility(self) -> bool:
+        """
+        Ensures that the stored parameters f,g,w,s have the same length.
+        Ignores anything stored as 'None'
+
+        :return: bool
+        """
+
+        # Initial variable to store the length of anything that is not 'None'
+        data_length = -1
+
+        # Cycle through all the parameters
+        stored_data = [self.f, self.g, self.w]
+        for data in stored_data:
+            if data is not None:
+                if data_length < 0:
+                    data_length = len(data)
+                elif len(data) != data_length:
+                    return False
+        return True
+
+    def eps_material(self, wavelengths):
+        """
+        Returns the complex dialectric function for a given wavelength
+
+        :param wavelengths:
+        :param numosc:
+        :return:
+        """
+
+        # Photon energy in eV
+        pen = np.divide(1239.84193E-9, wavelengths)
+
+        # Free electron eps
+        eps_free = 1 - np.divide(
+            np.power(np.sqrt(self.f[0]) * self.wp, 2),
+            np.multiply(pen, pen - 1j * self.g[0]))
+
+        # Bound electron eps
+        eps_bound = 0 + 1j * 0
+        for i in range(len(self.f) - 1):
+            a = np.multiply(self.f[i + 1], np.power(self.wp, 2))
+            b = np.subtract(np.power(self.w[i + 1], 2), np.power(pen, 2))
+            c = np.multiply(pen, 1j * self.g[i + 1])
+            eps_bound += np.divide(a, (b + c))
+
+        # complex dielectric function
+        return eps_free + eps_bound
+
+    def index_of_refraction(self, wavelengths):
+        eps = self.eps_material(wavelengths)
+        n = np.real(np.sqrt(eps))
+        k = np.imag(np.sqrt(eps))
+        return n - 1j * k
+
+    def save_ld_metal(self,
+                      directory='resources/materials/ld_metals',
+                      filename: Union[None, str] = None,
+                      overwrite=False):
+
+        # Ensure that there are no None entries and all data is compatible
+        if not self._compatibility():
+            raise SyntaxError('Cannot save incompatible data')
+        if self._none_entries():
+            raise SyntaxError('Cannot save incomplete material object')
+
+        # Compile all the data into a singular list
+        ld_metal_data: List[float] = list(self.f)
+        ld_metal_data += list(self.g) + list(self.w)
+        ld_metal_data.append(self.wp)
+
+        # Create the filename that this will be saved to
+        if filename is None:
+            filename = os.path.join(directory, f'{self.name}_ld_metal')
+
+        # Open the file
+        if overwrite:
+            output_file = open(filename, 'wb')
+        else:
+            try:
+                output_file = open(filename, 'xb')
+            except FileExistsError:
+                raise FileExistsError(
+                    f'Cannot save material to {filename} '
+                    f'without overwriting existing file')
+
+        # Obtain relevent lengths
+        name_length = len(self.name)
+        num_doubles = len(self.f)
+        packed_data = pack(
+            f'II{name_length}s{3 * num_doubles + 1}d',
+            name_length, num_doubles,
+            self.name.encode('utf-8'), *ld_metal_data
+        )
+
+        # Write the packed data to the file then close it
+        output_file.write(packed_data)
+        output_file.close()
+
+    @staticmethod
+    def refl(ri, n_c):
+        # todo: idk what ri and n_c are representing
+        ref = np.divide(
+            np.power(n_c - np.real(ri), 2) + np.power(-np.imag(ri), 2),
+            np.power(n_c + np.real(ri), 2) + np.power(-np.imag(ri), 2))
+        return ref
+
+
+def load_ld_metal(filename):
+    with open(filename, 'rb') as binary_file:
+
+        # Read the length of the string
+        name_length = unpack('I', binary_file.read(4))[0]
+
+        # Read the length of the arrays
+        array_length = unpack('I', binary_file.read(4))[0]
+
+        # Return the read cursor to 0, and read the entire file
+        binary_file.seek(0)
+        unpacked_data = unpack(f'II{name_length}s{3 * array_length + 1}d',
+                               binary_file.read())
+
+    # Extract the name of the material and the data being stored.
+    material_name = unpacked_data[2]
+    stored_data = list(unpacked_data[3:])
+
+    # Organize the extracted data
+    wp = stored_data.pop()
+    f = stored_data[0: array_length]
+    g = stored_data[array_length: (2 * array_length)]
+    w = stored_data[2 * array_length: (3 * array_length)]
+
+    # Generate a material name if not given
+    if material_name is None:
+        file_tag = filename.split('/')[-1]
+        if file_tag[-9:] == '_bb_metal':
+            material_name = file_tag[:-9]
+        else:
+            raise SyntaxError('Name of material unspecified')
+
+    # Create and return the bb_metal
+    return LDMetal(
+        name=material_name.decode('utf-8'),
+        f=np.array(f), g=np.array(g), w=np.array(w), wp=wp
+    )

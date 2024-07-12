@@ -1,6 +1,12 @@
 import numpy as np
 import os
 from src.inputs.materials.bb_metals import BBMetal, load_bb_metal
+from src.inputs.materials.ld_metals import LDMetal, load_ld_metal
+
+
+def load_all_materials():
+    upload_bb_materials()
+    upload_ld_materials()
 
 
 def upload_bb_materials(directory='resources/materials/bb_metals'):
@@ -135,6 +141,132 @@ def upload_bb_materials(directory='resources/materials/bb_metals'):
                     print(f'Check {5} passed for {metal.name}')
                 else:
                     print(f'Check {5} failed for {metal.name}')
+
+        # Provide a blank line
+        print('')
+
+
+def upload_ld_materials(directory='resources/materials/ld_metals'):
+    Ag = {
+        'f': np.array([0.845, 0.065, 0.124, 0.011, 0.840, 5.646]),
+        'g': np.array([0.048, 3.886, 0.452, 0.065, 0.916, 2.419]),
+        'w': np.array([0, 0.816, 4.481, 8.185, 9.083, 20.29]),
+        'wp': 9.01
+    }
+
+    Au = {
+        'f': np.array([0.760, 0.024, 0.010, 0.071, 0.601, 4.384]),
+        'g': np.array([0.053, 0.241, 0.345, 0.870, 2.494, 2.214]),
+        'w': np.array([0, 0.415, 0.830, 2.969, 4.304, 13.32]),
+        'wp': 9.03
+    }
+
+    Cu = {
+        'f': np.array([0.575, 0.061, 0.104, 0.723, 0.638]),
+        'g': np.array([0.030, 0.378, 1.056, 3.213, 4.305]),
+        'w': np.array([0, 0.291, 2.597, 5.300, 11.18]),
+        'wp': 10.83
+    }
+
+    Al = {
+        'f': np.array([0.532, 0.227, 0.050, 0.166, 0.030]),
+        'g': np.array([0.047, 0.333, 0.312, 1.351, 3.382]),
+        'w': np.array([0, 0.162, 1.544, 1.808, 3.473]),
+        'wp': 14.98
+    }
+
+    Be = {
+        'f': np.array([0.084, 0.031, 0.140, 0.530, 0.130]),
+        'g': np.array([0.035, 1.664, 3.395, 4.454, 1.802]),
+        'w': np.array([0, 0.100, 1.032, 3.183, 4.604]),
+        'wp': 18.51
+    }
+
+    Cr = {
+        'f': np.array([0.168, 0.151, 0.150, 1.149, 0.825]),
+        'g': np.array([0.047, 3.175, 1.305, 2.676, 1.335]),
+        'w': np.array([0, 0.121, 0.543, 1.970, 8.775]),
+        'wp': 10.75
+    }
+
+    Ni = {
+        'f': np.array([0.096, 0.100, 0.135, 0.106, 0.729]),
+        'g': np.array([0.048, 4.511, 1.334, 2.178, 6.292]),
+        'w': np.array([0, 0.174, 0.582, 1.597, 6.089]),
+        'wp': 15.92
+    }
+
+    Pd = {
+        'f': np.array([0.330, 0.649, 0.121, 0.638, 0.453]),
+        'g': np.array([0.008, 2.950, 0.555, 4.621, 3.236]),
+        'w': np.array([0, 0.336, 0.501, 1.659, 1.715]),
+        'wp': 9.72
+    }
+
+    Pt = {
+        'f': np.array([0.333, 0.191, 0.659, 0.547, 3.576]),
+        'g': np.array([0.080, 0.517, 1.838, 3.668, 8.517]),
+        'w': np.array([0, 0.780, 1.314, 3.141, 9.249]),
+        'wp': 9.59
+    }
+
+    Ti = {
+        'f': np.array([0.148, 0.899, 0.393, 0.187, 0.001]),
+        'g': np.array([0.082, 2.276, 2.518, 1.663, 1.762]),
+        'w': np.array([0, 0.777, 1.545, 2.509, 19.43]),
+        'wp': 7.29
+    }
+
+    W = {
+        'f': np.array([0.206, 0.054, 0.166, 0.706, 2.590]),
+        'g': np.array([0.064, 0.530, 1.281, 3.332, 5.836]),
+        'w': np.array([0, 1.004, 1.917, 3.580, 7.498]),
+        'wp': 13.22
+    }
+
+    mats = {
+        'Ag': Ag,
+        'Au': Au,
+        'Cu': Cu,
+        'Al': Al,
+        'Be': Be,
+        'Cr': Cr,
+        'Ni': Ni,
+        'Pd': Pd,
+        'Pt': Pt,
+        'Ti': Ti,
+        'W': W
+    }
+
+    # Generate the materials
+    materials = []
+    for key, val in mats.items():
+        new_metal = LDMetal(
+            name=key, **val
+        )
+        new_metal.save_ld_metal(overwrite=True)
+        materials.append(new_metal)
+
+    # Load the materials
+    for filename in os.listdir(directory):
+        file_directory = os.path.join(directory, filename)
+        metal = load_ld_metal(file_directory)
+
+        # Iterate through all metals and see which one has a matching name
+        for stored_metal in materials:
+            if stored_metal.name == metal.name:
+                checks = [stored_metal.f - metal.f,
+                          stored_metal.g - metal.g,
+                          stored_metal.w - metal.w]
+                for i, check in enumerate(checks):
+                    if all(v == 0 for v in check):
+                        print(f'Check {i + 1} passed for {metal.name}')
+                    else:
+                        print(f'Check {i + 1} failed for {metal.name}')
+                if stored_metal.wp == metal.wp:
+                    print(f'Check {len(checks) + 1} passed for {metal.name}')
+                else:
+                    print(f'Check {len(checks) + 1} failed for {metal.name}')
 
         # Provide a blank line
         print('')
